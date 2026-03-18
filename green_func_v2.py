@@ -53,7 +53,7 @@ def integrator(f, field_type=None):
         raise ValueError(f"Unknown field_type: {field_type}")
         
     I, err = integrate.quad(lambda t: f_subst(t), start, end, points=points, 
-                           complex_func=True, limit=4000, epsrel=1e-8)
+                           complex_func=True, limit=8000, epsrel=1e-6)
     return I
 
 
@@ -75,7 +75,6 @@ def precompute_integrals(wl, h, r, forH, eps_val, field_type=None):
     cache_key = _make_cache_key(wl, h, r, forH, eps_val, field_type)
     if cache_key in _integrals_cache:
         return _integrals_cache[cache_key]
-    # Вычисление интегралов
     k = 2*np.pi/wl
 
     def rp(kr): return frenel.reflection_coeff(wl, lambda _: eps_val, kr)[2 if forH else 0]

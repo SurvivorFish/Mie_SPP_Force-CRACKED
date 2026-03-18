@@ -89,14 +89,17 @@ def field_dz(field, wl, alpha, amplitude, eps_Au, point, phase, a_angle, h=1e-3)
     
 
 
-def F(wl, eps_Au, point,R, eps_si, alpha, amplitude, phase, a_angle ,stop, full_output=False, initial_field_type=None):
+def F(wl, eps_Au, point,R, eps_si, alpha, amplitude, phase, a_angle ,stop, full_output=False, initial_field_type=None, effective_dipoles_in_air=False, effective_dipoles_substrate = None):
     mu=1
     eps=1
     k = 2*np.pi/wl/1e-9
     omega = 2*np.pi*c_const/wl/1e-9
     _,_,z0=point
     
-    dip = dipoles.calc_dipoles_v2(wl,eps_Au, point,R,eps_si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
+    if effective_dipoles_in_air == True:
+        dip = dipoles.calc_dipoles_v2(wl,effective_dipoles_substrate, point,R,eps_si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
+    else:
+        dip = dipoles.calc_dipoles_v2(wl,eps_Au, point,R,eps_si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
         
     p = dip[0][:,0]
     m = dip[1][:,0]

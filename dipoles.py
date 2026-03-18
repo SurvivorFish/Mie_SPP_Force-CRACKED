@@ -233,7 +233,8 @@ def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
 
 
 
-def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, initial_field_type='plane_wave'):
+def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, 
+                    initial_field_type='plane_wave', green_func_type=None):
     mu = 1
     eps = 1
     k = 2*np.pi/wl/1e-9
@@ -242,7 +243,7 @@ def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_ang
     alpha_e, alpha_m = alpha_v2(wl, R, eps_Si)
     
     
-    G_ref_E, rot_G_ref_H, G_ref_H, rot_G_ref_E = green_func_v2.getG(wl, eps_Au, 2*z0, 0, 0)
+    G_ref_E, rot_G_ref_H, G_ref_H, rot_G_ref_E = green_func_v2.getG(wl, eps_Au, 2*z0, 0, 0, green_func_type)
     # (G_ref_E, G_ref_H, rot_G_ref_E, rot_G_ref_H) = cached_green_functions(
     #     wl, z0, eps_Au)
     if initial_field_type == 'plane_wave':
@@ -286,45 +287,37 @@ def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_ang
     return p, m
 
 
-# def calc_dipoles_v3(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, stop):
-#     mu = 1
-#     eps = 1
-#     k = 2*np.pi/wl/1e-9
-#     omega = 2*np.pi*c_const/wl/1e-9
-#     x0, y0, z0 = point
-#     alpha_e, alpha_m = alpha_v2(wl, R, eps_Si)
+def extinction_cross_section(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, 
+                    initial_field_type='plane_wave', normalized=True):
     
-#     (G_ref_E, G_ref_H, rot_G_ref_E, rot_G_ref_H) = cached_green_functions(
-#         wl, z0, eps_Au)
+    if initial_field_type == 'plane_wave':
+        E0, H0 = initial_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+    elif initial_field_type == 'two_beam':
+        E0, H0 = field_two_beam_setup(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+    elif initial_field_type == 'custom':
+        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+    else:
+        raise ValueError("Invalid initial_field_type. Choose from 'plane_wave', 'two_beam', or 'custom'.")
+    
+    omega = 2*np.pi*c_const/wl/1e-9
+    I0 = 0.5*c_const*eps0_const*amplitude**2
+    p, m = calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
 
-#     E0, H0 = initial_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+    p = p.flatten()
+    m = m.flatten()
+    E0 = E0.flatten()
+    H0 = H0.flatten()
+    
+    sigma_e_tot = np.imag( p @ np.conj(E0))
+    sigma_m_tot = np.imag( m @ np.conj(H0)*mu0_const)
+    
+    sigma_tot = (sigma_e_tot + sigma_m_tot)*omega/I0/2
 
-#     G_ee = mu*k**2/eps0_const * G_ref_E
-#     G_em = 1j*omega*mu*mu0_const * rot_G_ref_H
-#     G_me = -1j*omega*rot_G_ref_E
-#     G_mm = eps*mu*k**2*G_ref_H
+    
+    
+    if normalized:
+        sigma0 = np.pi*(R*1e-9)**2
+    else:
+        sigma0 = 1
 
-#     I = np.eye(3, dtype=np.complex128)
-
-#     A = I - eps0_const * alpha_e * G_ee - eps0_const * alpha_e * \
-#         G_em @ np.linalg.inv(I - alpha_m * G_mm) * alpha_m @ G_me
-#     B = I - alpha_m * G_mm - alpha_m * \
-#         G_me @ np.linalg.inv(I - eps0_const * alpha_e *
-#                              G_ee) * eps0_const * alpha_e @ G_em
-
-#     Am1 = np.linalg.inv(A)
-#     Bm1 = np.linalg.inv(B)
-
-#     alpha_ee = Am1 * alpha_e
-#     alpha_mm = Bm1 * alpha_m
-
-#     alpha_em = Am1 * eps0_const * \
-#         alpha_e @ G_em @ np.linalg.inv(I - alpha_m * G_mm) * alpha_m
-#     alpha_me = Bm1 * \
-#         alpha_m @ G_me @ np.linalg.inv(I - eps0_const *
-#                                        alpha_e * G_ee) * eps0_const * alpha_e
-
-#     p = eps0_const * alpha_ee @ E0 + alpha_em @ H0
-#     m = alpha_mm @ H0 + alpha_me @ E0
-
-#     return p, m
+    return sigma_tot/sigma0
