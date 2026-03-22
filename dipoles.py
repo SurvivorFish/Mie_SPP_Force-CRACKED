@@ -1,8 +1,8 @@
 import numpy as np
-from MieSppForce import frenel
+import frenel
 from scipy.special import spherical_jn, spherical_yn
 from functools import lru_cache
-from MieSppForce import green_func_v2
+import green_func_v2
 
 c_const = 299792458
 eps0_const = 1 / (4 * np.pi * c_const ** 2) * 1e7

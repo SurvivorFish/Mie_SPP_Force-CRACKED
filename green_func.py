@@ -1,5 +1,5 @@
 import numpy as np
-from MieSppForce import frenel
+import frenel
 from scipy.integrate import quad
 from cmath import sqrt
 from functools import lru_cache

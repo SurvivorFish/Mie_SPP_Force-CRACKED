@@ -3,7 +3,7 @@ import numpy as np
 from scipy import integrate
 from scipy.special import jn, j0, j1
 from numpy import sqrt, exp, sin, cos, tan, pi
-from MieSppForce import frenel
+import frenel
 
 _integrals_cache = {}
 

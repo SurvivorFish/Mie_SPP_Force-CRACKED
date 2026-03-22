@@ -1,4 +1,4 @@
-from MieSppForce import dipoles, green_func_v2
+import dipoles, green_func_v2
 import numpy as np
 
 c_const = 299792458

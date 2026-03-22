@@ -1,8 +1,8 @@
 import numpy as np
 import scipy as sc
-from MieSppForce import green_func
-from MieSppForce import frenel
-from MieSppForce import dipoles
+import green_func
+import frenel
+import dipoles
 
 
 c_const = 299792458

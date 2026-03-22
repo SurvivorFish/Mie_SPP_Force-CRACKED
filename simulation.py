@@ -2,7 +2,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import pint
-from MieSppForce import frenel, dipoles, force, fields
+import frenel, dipoles, force, fields
 from dataclasses import dataclass
 import numpy as np
 from scipy.integrate import trapezoid
