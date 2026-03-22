@@ -65,17 +65,9 @@ def get_interpolate(mat):
         numpy.complex128: epsilon
     """
     base_dir = os.path.dirname(__file__)
-    
-    
-    if mat == 'Au':
-        file_path = os.path.join(base_dir, 'nkAu.csv')
-        data = np.loadtxt(file_path, delimiter=',', skiprows=1)
-    elif mat == 'Si':
-        file_path = os.path.join(base_dir, 'nkSi.csv')
-        data = np.loadtxt(file_path, delimiter=',', skiprows=1)
-    elif mat== 'Ag':
-        file_path = os.path.join(base_dir, 'nkAg.csv')
-        data = np.loadtxt(file_path, delimiter=',', skiprows=1)
+
+    file_path = os.path.join(base_dir, 'materials/' + mat + '.csv')
+    data = np.loadtxt(file_path, delimiter=',', skiprows=1)
 
     n_interp = interp1d(data[:,0], data[:,1])
     k_interp = interp1d(data[:,0], data[:,2])
