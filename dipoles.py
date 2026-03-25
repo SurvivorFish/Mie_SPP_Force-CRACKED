@@ -154,29 +154,27 @@ def field_two_beam_setup(wl, alpha, amplitude, eps_interp, point, phase, a_angle
     return E0, H0
 
 
-def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
+def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, w0, z_beam):
+    
+    k = 2*np.pi/wl
+    omega = 2*np.pi*c_const/wl
+    
+    zR = np.pi*w0**2 / wl
+
+    def w(z_coord): return w0*np.sqrt(1 + (z_coord / zR)**2)
+    def R(z_coord): return z_coord * (1 + (zR / z_coord)**2)
+    def psi(z_coord): return np.arctan(z_coord / zR)
+            
 
     def electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
-        rp, rs = frenel.reflection_coeff_v2(wl, eps_interp, alpha)
-        xnm, ynm, znm = point
-        x = xnm*1e-9
-        z = znm*1e-9
-        k = 2*np.pi/wl/1e-9
-        omega = 2*np.pi*c_const/wl/1e-9
+        x0, y0, z0 = point
+        r0 = np.sqrt(x0**2 + y0**2)
+        Ex = amplitude * w0/w(z0 - z_beam) * \
+        np.exp( -r0**2 / w(z0 - z_beam)**2 ) * \
+        np.exp( 1j* ( k*(z0 - z_beam) + k * r0**2 / 2 / R(z0 - z_beam) - psi(z0 - z_beam) ) )
         
-        kx = k * np.sin(alpha)
-        kz = k * np.cos(alpha)
-
-        Ex = amplitude*np.cos(alpha)*(np.exp(-1j*kz*z) - rp * np.exp(1j*kz*z) )*np.exp(1j*kx*x)
+        E0 = np.array([Ex, 0, 0], dtype=complex)
         
-        Ey = amplitude*(np.exp(-1j*kz*z)+rs*np.exp(1j*kz*z))*np.exp(-1j*kx*x)
-
-        Ez = (-1)*amplitude*np.sin(alpha)*(np.exp(-1j*kz*z) + rp * np.exp(1j*kz*z) )*np.exp(1j*kx*x)
-        
-        A = np.sin(a_angle)
-        B = np.cos(a_angle)
-        Phase = np.exp(1j*phase)
-        E0 = np.array([Ex*B, Ey*A*Phase, Ez*B])
         return E0
     
     def magnetic_field(electric_field, wl, alpha, amplitude, eps_interp,
@@ -234,7 +232,7 @@ def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
 
 
 def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, 
-                    initial_field_type='plane_wave', green_func_type=None):
+                    initial_field_type='plane_wave', green_func_type=None, w0=None, z_beam=None):
     mu = 1
     eps = 1
     k = 2*np.pi/wl/1e-9
@@ -251,7 +249,7 @@ def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_ang
     elif initial_field_type == 'two_beam':
         E0, H0 = field_two_beam_setup(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
     elif initial_field_type == 'custom':
-        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle, w0=w0, z_beam=z_beam)
     else:
         raise ValueError("Invalid initial_field_type. Choose from 'plane_wave', 'two_beam', or 'custom'.")
         
@@ -288,20 +286,33 @@ def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_ang
 
 
 def extinction_cross_section(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, 
-                    initial_field_type='plane_wave', normalized=True):
+                    initial_field_type='plane_wave', normalized=True, green_func_type=None, w0=None, z_beam=None):
     
     if initial_field_type == 'plane_wave':
         E0, H0 = initial_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
     elif initial_field_type == 'two_beam':
         E0, H0 = field_two_beam_setup(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
     elif initial_field_type == 'custom':
-        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle, w0=w0, z_beam=z_beam)
     else:
         raise ValueError("Invalid initial_field_type. Choose from 'plane_wave', 'two_beam', or 'custom'.")
     
     omega = 2*np.pi*c_const/wl/1e-9
     I0 = 0.5*c_const*eps0_const*amplitude**2
-    p, m = calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
+    p, m = calc_dipoles_v2(
+        wl,
+        eps_Au,
+        point,
+        R,
+        eps_Si,
+        alpha,
+        amplitude,
+        phase,
+        a_angle,
+        initial_field_type=initial_field_type,
+        w0=w0,
+        z_beam=z_beam,
+    )
 
     p = p.flatten()
     m = m.flatten()

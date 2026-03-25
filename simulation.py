@@ -159,7 +159,7 @@ class SphericalGrid(Grid):
 class SimulationConfig:
     def __init__(self, wl, R, dist, angle,
                  psi=None, chi=None, beta=None, delta=None,
-                 substrate='Au', particle='Si', stop=45, amplitude=1, show_warnings=True, initial_field_type='plane_wave'):
+                 substrate='Au', particle='Si', stop=45, amplitude=1, show_warnings=True, initial_field_type='plane_wave', w0=None, z_beam=None):
         self.wl = wl
         self.R = R
         self.dist = dist
@@ -197,6 +197,18 @@ class SimulationConfig:
         else:
             self.eps_substrate = frenel.get_interpolate(substrate)
 
+        if self.initial_field_type == 'custom':
+            if w0 is None or z_beam is None:
+                raise ValueError(
+                    "For initial_field_type='custom', parameters w0 and z_beam must be provided (for Gaussian beam)."
+                )
+            self.w0 = w0
+            self.z_beam = z_beam
+            print(f"Custom field parameters set: w0={self.w0}, z_beam={self.z_beam}")
+        else:
+            # можно явно занулить
+            self.w0 = None
+            self.z_beam = None
         self.c_const = 299792458 * ureg.meter / ureg.second
         self.eps0_const = 1/(4*np.pi*self.c_const**2)*1e7 * \
             ureg.farad / ureg.meter
@@ -456,7 +468,9 @@ class DipoleCalculator:
                                        amplitude = self.config.amplitude, 
                                        phase = self.config.phase, 
                                        a_angle = self.config.a_angle, 
-                                       initial_field_type=self.config.initial_field_type)
+                                       initial_field_type=self.config.initial_field_type,
+                                       w0 = self.config.w0,
+                                       z_beam = self.config.z_beam)
 
         p_vec = p[:, 0]
         m_vec = m[:, 0]
@@ -477,7 +491,9 @@ class ExtinctionCalculator:
                                                     amplitude=self.config.amplitude,
                                                     phase=self.config.phase,
                                                     a_angle=self.config.a_angle,
-                                                    initial_field_type=self.config.initial_field_type)
+                                                    initial_field_type=self.config.initial_field_type,
+                                                    w0=self.config.w0,
+                                                    z_beam=self.config.z_beam)
         return ExtinctionResult(sigma_tot=sigma_tot)
 
 class OpticalForceCalculator:
@@ -496,7 +512,9 @@ class OpticalForceCalculator:
                              a_angle=self.config.a_angle,
                              stop=self.config.STOP,
                              full_output=True,
-                             initial_field_type=self.config.initial_field_type)
+                             initial_field_type=self.config.initial_field_type,
+                             w0=self.config.w0,
+                             z_beam=self.config.z_beam)
 
         fx0, fy0, fz0 = force.F(wl=self.config.wl.to('nm').magnitude,
                                 eps_Au=self.config.eps_substrate,
@@ -509,7 +527,9 @@ class OpticalForceCalculator:
                                 a_angle=self.config.a_angle,
                                 stop=1,
                                 full_output=True,
-                                initial_field_type=self.config.initial_field_type)
+                                initial_field_type=self.config.initial_field_type,
+                                w0=self.config.w0,
+                                z_beam=self.config.z_beam)
 
         fxspp, fyspp, fzspp = fx-fx0, fy-fy0, fz-fz0
 
@@ -545,7 +565,9 @@ class FieldsCalculator:
                 z0=(self.config.dist + self.config.R).to('nm').magnitude,
                 field_type=field_type,
                 amplitude=self.config.amplitude,
-                initial_field_type=self.config.initial_field_type
+                initial_field_type=self.config.initial_field_type,
+                w0=self.config.w0,
+                z_beam=self.config.z_beam
             )
 
             sin_phi = np.sin(phi_val)
