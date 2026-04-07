@@ -154,34 +154,27 @@ def field_two_beam_setup(wl, alpha, amplitude, eps_interp, point, phase, a_angle
     return E0, H0
 
 
-def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, z_beam):
-    '''
-    this is for gaussian beam propagating along z-axis with zero x and y components
-    '''
-    # alpha = 0
-    w0 = .8*wl
+def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, w0, z_beam):
+    
+    k = 2*np.pi/wl
+    omega = 2*np.pi*c_const/wl
+    
     zR = np.pi*w0**2 / wl
 
     def w(z_coord): return w0*np.sqrt(1 + (z_coord / zR)**2)
     def R(z_coord): return z_coord * (1 + (zR / z_coord)**2)
     def psi(z_coord): return np.arctan(z_coord / zR)
+            
 
-    def electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, z_beam):
-        rp, rs = frenel.reflection_coeff_v2(wl, eps_interp, angle=0)
-        xnm, ynm, znm = point
-        x = xnm*1e-9
-        y = ynm*1e-9
-        z = znm*1e-9
-        k = 2*np.pi/wl/1e-9
-        omega = 2*np.pi*c_const/wl/1e-9
+    def electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
+        x0, y0, z0 = point
+        r0 = np.sqrt(x0**2 + y0**2)
+        Ex = amplitude * w0/w(z0 - z_beam) * \
+        np.exp( -r0**2 / w(z0 - z_beam)**2 ) * \
+        np.exp( 1j* ( k*(z0 - z_beam) + k * r0**2 / 2 / R(z0 - z_beam) - psi(z0 - z_beam) ) )
         
-        r = np.sqrt(x**2 + y**2)
+        E0 = np.array([Ex, 0, 0], dtype=complex)
         
-        # Ex = amplitude * w0/w(z) * np.exp( -r**2 / w(z)**2 ) * np.exp( 1j* ( k*(z) + k * r**2 / 2 / R(z) - psi(z) ) )
-
-        Ex = amplitude * w0/w(z-z_beam) * np.exp( -r**2 / w(z-z_beam)**2 ) * np.exp( 1j* ( k*(z-z_beam) + k * r**2 / 2 / R(z-z_beam) - psi(z-z_beam) ) )
-
-        E0 = np.array([Ex, 0, 0])
         return E0
     
     def magnetic_field(electric_field, wl, alpha, amplitude, eps_interp,
@@ -193,7 +186,7 @@ def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, z_beam
         x0, y0, z0 = point
 
         def E(p):
-            return electric_field(wl, alpha, amplitude, eps_interp, p, phase, a_angle, z_beam).flatten()
+            return electric_field(wl, alpha, amplitude, eps_interp, p, phase, a_angle).flatten()
 
         pxp = (x0 + step_nm, y0, z0)
         pxm = (x0 - step_nm, y0, z0)
@@ -229,15 +222,17 @@ def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, z_beam
 
         return np.array([curl_x, curl_y, curl_z], dtype=complex)*(-1j) / omega /mu0_const
     
-    E = electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, z_beam)
+    E = electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle)
     H = magnetic_field(electrc_field, wl, alpha, amplitude, eps_interp, point, phase, a_angle)
     
     return np.array([[E[0]], [E[1]],[E[2]]], dtype=complex), np.array([[H[0]], [H[1]], [H[2]]], dtype=complex)
 
 
 
-def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, z0,
-                    initial_field_type='plane_wave', green_func_type=None):
+
+
+def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, 
+                    initial_field_type='plane_wave', green_func_type=None, w0=None, z_beam=None):
     mu = 1
     eps = 1
     k = 2*np.pi/wl/1e-9
@@ -254,7 +249,7 @@ def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_ang
     elif initial_field_type == 'two_beam':
         E0, H0 = field_two_beam_setup(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
     elif initial_field_type == 'custom':
-        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle, z0)
+        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle, w0=w0, z_beam=z_beam)
     else:
         raise ValueError("Invalid initial_field_type. Choose from 'plane_wave', 'two_beam', or 'custom'.")
         
@@ -291,20 +286,33 @@ def calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_ang
 
 
 def extinction_cross_section(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, 
-                    initial_field_type='plane_wave', normalized=True):
+                    initial_field_type='plane_wave', normalized=True, green_func_type=None, w0=None, z_beam=None):
     
     if initial_field_type == 'plane_wave':
         E0, H0 = initial_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
     elif initial_field_type == 'two_beam':
         E0, H0 = field_two_beam_setup(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
     elif initial_field_type == 'custom':
-        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+        E0, H0 = custom_field(wl, alpha, amplitude, eps_Au, point, phase, a_angle, w0=w0, z_beam=z_beam)
     else:
         raise ValueError("Invalid initial_field_type. Choose from 'plane_wave', 'two_beam', or 'custom'.")
     
     omega = 2*np.pi*c_const/wl/1e-9
     I0 = 0.5*c_const*eps0_const*amplitude**2
-    p, m = calc_dipoles_v2(wl, eps_Au, point, R, eps_Si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
+    p, m = calc_dipoles_v2(
+        wl,
+        eps_Au,
+        point,
+        R,
+        eps_Si,
+        alpha,
+        amplitude,
+        phase,
+        a_angle,
+        initial_field_type=initial_field_type,
+        w0=w0,
+        z_beam=z_beam,
+    )
 
     p = p.flatten()
     m = m.flatten()
