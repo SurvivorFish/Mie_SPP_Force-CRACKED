@@ -157,13 +157,14 @@ class SphericalGrid(Grid):
 
 
 class SimulationConfig:
-    def __init__(self, wl, R, dist, angle,
+    def __init__(self, wl, R, dist, angle, z0,
                  psi=None, chi=None, beta=None, delta=None,
                  substrate='Au', particle='Si', stop=45, amplitude=1, show_warnings=True, initial_field_type='plane_wave'):
         self.wl = wl
         self.R = R
         self.dist = dist
         self.angle = angle
+        self.z0 = z0
 
         self._psi = psi
         self._chi = chi
@@ -228,7 +229,7 @@ class SimulationConfig:
         return (2 * np.pi * self.c_const / self.wl)
 
     def point0(self):
-        return [0, 0, (self.dist + self.R).to('nm').magnitude]
+        return [0, 0, self.z0.to('nm').magnitude]
 
     def get_eps_particle(self):
         return frenel.get_interpolate(self.particle)(self.wl)
@@ -494,6 +495,7 @@ class OpticalForceCalculator:
                              amplitude=self.config.amplitude,
                              phase=self.config.phase,
                              a_angle=self.config.a_angle,
+                             z0=self.config.z0,
                              stop=self.config.STOP,
                              full_output=True,
                              initial_field_type=self.config.initial_field_type)
@@ -507,6 +509,7 @@ class OpticalForceCalculator:
                                 amplitude=self.config.amplitude,
                                 phase=self.config.phase,
                                 a_angle=self.config.a_angle,
+                                z0=self.config.z0,
                                 stop=1,
                                 full_output=True,
                                 initial_field_type=self.config.initial_field_type)

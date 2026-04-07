@@ -1,26 +1,29 @@
-from numpy import pi
+import numpy as np
+from gauss_force import F
+import frenel
 import pint
-from simulation import SimulationConfig, OpticalForceCalculator, DipoleCalculator
+import matplotlib.pyplot as plt
+
+Zgrid = np.linspace(100E-9, 1000E-9, 20)
+Fzvals = np.zeros_like(Zgrid)
+
+ureg=pint.UnitRegistry()
+WAVELEN = 640 * ureg.nanometer
+no_subs = lambda wl: 1+0*1j 
+Si_data = frenel.get_interpolate('SiO2')
 
 
-ureg = pint.UnitRegistry()
+for i in range(len(Zgrid)):
+    Fzvals[i] = F(wl=WAVELEN,
+                 eps_Au=no_subs,
+                 point=np.array([0, 0, 0]),
+                 R=70*ureg.nanometer,
+                 eps_Si=Si_data,
+                 w0=450*ureg.nanometer,
+                 amplitude=1,
+                 z0=Zgrid[i]*ureg.nanometer,
+                 stop=45,
+                 full_output=False)[2]
 
-for r in range(10, 170, 10):
-    cfg = SimulationConfig(
-        wl=640 * ureg.nanometer,
-        R=r * ureg.nanometer,
-        dist=10 * ureg.nanometer,
-        angle=45,
-        psi=pi/2,
-        chi=pi/4,
-        substrate='Vacuum',
-        particle='SiO2',
-        amplitude=1
-    )
-    forces = OpticalForceCalculator(config=cfg).compute()
-    
-    # dipoles = DipoleCalculator(config=cfg).compute()
-    with open('output/' + 'a.txt', 'a') as file:
-        file.write((str)(r) + ';' + (str)(forces.Fx[0]) + ';' + (str)(forces.Fz[0]) + '\n')
-
-
+plt.plot(Zgrid, Fzvals)
+plt.show()

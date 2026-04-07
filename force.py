@@ -65,22 +65,22 @@ def cached_green_functions(wl, z0, eps_Au, stop):
     return result
     
     
-def field_dx(field, wl, alpha, amplitude, eps_Au, point, phase, a_angle, h=1):
+def field_dx(field, wl, alpha, amplitude, eps_Au, point, phase, a_angle, z0, h=1):
     dp = np.array([h / 2, 0, 0])
     
-    E_plus, H_plus = field(wl, alpha, amplitude, eps_Au, point + dp, phase, a_angle)
-    E_minus, H_minus = field(wl, alpha, amplitude, eps_Au, point - dp, phase, a_angle)
+    E_plus, H_plus = field(wl, alpha, amplitude, eps_Au, point + dp, phase, a_angle, z0)
+    E_minus, H_minus = field(wl, alpha, amplitude, eps_Au, point - dp, phase, a_angle, z0)
 
     dE_dx = (E_plus[:,0] - E_minus[:,0]) / h * 1e09
     dH_dx = (H_plus[:,0] - H_minus[:,0]) / h * 1e09
 
     return dE_dx, dH_dx
 
-def field_dz(field, wl, alpha, amplitude, eps_Au, point, phase, a_angle, h=1e-3):
+def field_dz(field, wl, alpha, amplitude, eps_Au, point, phase, a_angle, z0, h=1e-3):
     dp = np.array([0, 0, h / 2])
     
-    E_plus, H_plus = field(wl, alpha, amplitude, eps_Au, point + dp, phase, a_angle)
-    E_minus, H_minus = field(wl, alpha, amplitude, eps_Au, point - dp, phase, a_angle)
+    E_plus, H_plus = field(wl, alpha, amplitude, eps_Au, point + dp, phase, a_angle, z0)
+    E_minus, H_minus = field(wl, alpha, amplitude, eps_Au, point - dp, phase, a_angle, z0)
 
     dE_dz = (E_plus[:,0] - E_minus[:,0]) / h * 1e09
     dH_dz = (H_plus[:,0] - H_minus[:,0]) / h * 1e09
@@ -89,7 +89,7 @@ def field_dz(field, wl, alpha, amplitude, eps_Au, point, phase, a_angle, h=1e-3)
     
 
 
-def F(wl, eps_Au, point,R, eps_si, alpha, amplitude, phase, a_angle ,stop, full_output=False, initial_field_type=None, effective_dipoles_in_air=False, effective_dipoles_substrate = None):
+def F(wl, eps_Au, point,R, eps_si, alpha, amplitude, phase, a_angle, z0, stop, full_output=False, initial_field_type=None, effective_dipoles_in_air=False, effective_dipoles_substrate = None):
     mu=1
     eps=1
     k = 2*np.pi/wl/1e-9
@@ -97,9 +97,9 @@ def F(wl, eps_Au, point,R, eps_si, alpha, amplitude, phase, a_angle ,stop, full_
     _,_,z0=point
     
     if effective_dipoles_in_air == True:
-        dip = dipoles.calc_dipoles_v2(wl,effective_dipoles_substrate, point,R,eps_si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
+        dip = dipoles.calc_dipoles_v2(wl,effective_dipoles_substrate, point,R,eps_si, alpha, amplitude, phase, a_angle, z0, initial_field_type=initial_field_type)
     else:
-        dip = dipoles.calc_dipoles_v2(wl,eps_Au, point,R,eps_si, alpha, amplitude, phase, a_angle, initial_field_type=initial_field_type)
+        dip = dipoles.calc_dipoles_v2(wl,eps_Au, point,R,eps_si, alpha, amplitude, phase, a_angle, z0, initial_field_type=initial_field_type)
         
     p = dip[0][:,0]
     m = dip[1][:,0]
@@ -113,8 +113,8 @@ def F(wl, eps_Au, point,R, eps_si, alpha, amplitude, phase, a_angle ,stop, full_
     else:
         raise ValueError("Invalid initial_field_type. Choose from 'plane_wave', 'two_beam', or 'custom'.")
 
-    dE_dx, dH_dx = field_dx(field0, wl, alpha, amplitude, eps_Au, point, phase, a_angle)
-    dE_dz, dH_dz = field_dz(field0, wl, alpha, amplitude, eps_Au, point, phase, a_angle)
+    dE_dx, dH_dx = field_dx(field0, wl, alpha, amplitude, eps_Au, point, phase, a_angle, z0)
+    dE_dz, dH_dz = field_dz(field0, wl, alpha, amplitude, eps_Au, point, phase, a_angle, z0)
 
 
     (dx_G_E, dx_G_H, dx_rot_G_E, dx_rot_G_H,
