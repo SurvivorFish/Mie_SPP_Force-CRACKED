@@ -155,7 +155,6 @@ def field_two_beam_setup(wl, alpha, amplitude, eps_interp, point, phase, a_angle
 
 
 def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, w0, z_beam):
-    
     k = 2*np.pi/wl
     omega = 2*np.pi*c_const/wl
     
