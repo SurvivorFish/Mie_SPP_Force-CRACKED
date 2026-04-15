@@ -1,5 +1,5 @@
-file1 = 'balovstvo/scattering1.txt'
-file2 = 'balovstvo/scattering1-crop.txt'
+file1 = 'balovstvo/scattering_SiO2.txt'
+file2 = 'balovstvo/scattering_SiO2-crop.txt'
 
 lines = []
 with open(file1, 'r') as f:

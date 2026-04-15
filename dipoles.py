@@ -162,44 +162,62 @@ def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, w0, z_
 <<<<<<< HEAD
 =======
     rp, rs = frenel.reflection_coeff_v2(wl, eps_interp, alpha)
+<<<<<<< Updated upstream
 >>>>>>> 1e5d8f880cd3a20f4e2fcda969bce33e031c214a
+=======
+    rp=0
+>>>>>>> Stashed changes
     k = 2*np.pi/wl
     omega = 2*np.pi*c_const/wl
-    
+
     zR = np.pi*w0**2 / wl
 
+    def w(z_coord): return w0*np.sqrt(1 + (z_coord / zR)**2)
+    def R(z_coord): return z_coord * (1 + (zR / z_coord)**2)
+    def psi(z_coord): return np.arctan(z_coord / zR)
+
+    # from wiki  
     def electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
-        x0, _, z0 = point
+        x0, y0, z0 = point
+        r0 = np.sqrt(x0**2 + y0**2)
+        Ex = amplitude * w0/w(z0 - z_beam) * \
+        np.exp( -r0**2 / w(z0 - z_beam)**2 ) * \
+        np.exp( 1j* ( k*(z0 - z_beam) + k * r0**2 / 2 / R(z0 - z_beam) - psi(z0 - z_beam) ) )
 
-        f = z_beam
-        # def integrand_re(k_x, sign):
-        #     return (kz*(1-sign) + k_x*sign ) / k * np.exp(-k_x**2 * w0**2 / 4) * (cos(kz*f)*(  cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                     sin(kz*f)*(  sin(kz*z0)*cos(k_x*x0) - cos(kz*z0)*sin(k_x*x0)  )  + \
-        #                                                     (-1)**(sign)*rp * (cos(kz*f)*(  -cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                           sin(kz*f)*(  sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  )))
-        
-        # def integrand_im(k_x, sign):
-        #     return (kz*(1-sign) + k_x*sign ) / k * np.exp(-k_x**2 * w0**2 / 4) * ( -cos(kz*f)*(  sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                        sin(kz*f) * (  cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                        (-1)**(sign)*rp * (cos(kz*f) * (  -sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                              sin(kz*f) * (  -sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  )))
+        r = np.sqrt(x0**2 + y0**2)
+        E0 = np.array([Ex, 0, 0], dtype=complex)
 
-        def integrand_re(kx, sign):
-            kz = np.sqrt(k**2 - kx**2)
-            return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
-                np.real( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
-        
-        def integrand_im(kx, sign):
-            kz = np.sqrt(k**2 - kx**2)
-            return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
-                np.imag( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
+        # Ex = amplitude * w0/w(z) * np.exp( -r**2 / w(z)**2 ) * np.exp( 1j* ( k*(z) + k * r**2 / 2 / R(z) - psi(z) ) )
 
-        Ex = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(0))[0] + 1j * quad(integrand_im, -k, k, args=(0))[0])
-        Ez = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(1))[0] + 1j * quad(integrand_im, -k, k, args=(1))[0])
-        
-        E0 = np.array([Ex, 0, Ez], dtype=complex)
-        
+        Ex = amplitude * w0/w(z0-z_beam) * np.exp( -r**2 / w(z0-z_beam)**2 ) * np.exp( 1j* ( k*(z0-z_beam) + k * r**2 / 2 / R(z0-z_beam) - psi(z0-z_beam) ) )
+
+        E0 = np.array([Ex, 0, 0])
         return E0
+    
+    # Via integral
+    # def electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
+    #     x0, _, z0 = point
+
+    #     f = z_beam
+
+    #     def integrand_re(kx, sign):
+    #         kz = np.sqrt(k**2 - kx**2)  # non-paraxial
+    #         # kz = k - kx**2 / ( 2*k )  # paraxial
+    #         return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
+    #             np.real( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
+        
+    #     def integrand_im(kx, sign):
+    #         kz = np.sqrt(k**2 - kx**2)
+    #         # kz = k - kx**2 / ( 2*k )
+    #         return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
+    #             np.imag( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
+
+    #     Ex = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(0))[0] + 1j * quad(integrand_im, -k, k, args=(0))[0])
+    #     Ez = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(1))[0] + 1j * quad(integrand_im, -k, k, args=(1))[0])
+        
+    #     E0 = np.array([Ex, 0, Ez], dtype=complex)
+        
+    #     return E0
     
     def magnetic_field(electric_field, wl, alpha, amplitude, eps_interp, point, phase, a_angle, step_nm=1):
         
