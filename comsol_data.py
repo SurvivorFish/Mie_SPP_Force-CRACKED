@@ -8,7 +8,7 @@ def parse_file(filename: str):
     """
     raw_data = pd.read_csv(filename, header=4)
 
-    grouped = raw_data.groupby("% r_part (m)")
+    grouped = raw_data.groupby("% r (m)")
     out = [group for _, group in grouped]
 
     return out

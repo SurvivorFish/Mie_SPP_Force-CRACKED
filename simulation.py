@@ -159,7 +159,7 @@ class SphericalGrid(Grid):
 class SimulationConfig:
     def __init__(self, wl, R, dist, angle,
                  psi=None, chi=None, beta=None, delta=None,
-                 substrate='Au', particle='Si', stop=45, amplitude=1, show_warnings=True, initial_field_type='plane_wave', w0=None, z_beam=None, x_part=None):
+                 substrate='Au', particle='Si', stop=45, amplitude=1, show_warnings=True, initial_field_type='plane_wave', w0=None, z_beam=None, xp=None):
         self.wl = wl
         self.R = R
         self.dist = dist
@@ -205,7 +205,7 @@ class SimulationConfig:
                 )
             self.w0 = w0
             self.z_beam = z_beam
-            self.x_part = x_part
+            self.xp = xp
             print(f"Custom field parameters set: w0={self.w0}, z_beam={self.z_beam}")
         else:
             # можно явно занулить
@@ -242,7 +242,7 @@ class SimulationConfig:
         return (2 * np.pi * self.c_const / self.wl)
 
     def point0(self):
-        return [self.x_part.to('nm').magnitude, 0, 0]
+        return [self.xp.to('nm').magnitude, 0, 0]
 
     def get_eps_particle(self):
         return frenel.get_interpolate(self.particle)(self.wl)
