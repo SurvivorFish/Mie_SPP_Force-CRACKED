@@ -14,8 +14,8 @@ sqrtpi = np.sqrt(np.pi)
 def get_field(wl, eps_interp, alpha, phase, a_angle, eps_particle, R,   r, phi, z, z0, field_type = None, amplitude=1, initial_field_type=None, 
               z_beam = None, w0 = None):
     
-    assert z>= 0, "z should be >=0"
-    assert z0>0, "z0 should be >0"
+    # assert z>= 0, "z should be >=0"
+    # assert z0>0, "z0 should be >0"
     
     k = 2*np.pi/wl*1e9
     omega = k*c_const
@@ -53,7 +53,6 @@ def gaussian_beam(wl, alpha, amplitude, eps_interp, point, w0, z_beam):
     # rp, rs = frenel.reflection_coeff_v2(wl, eps_interp, alpha)
     rp = 0
     k = 2*np.pi/wl
-    print(k)
     # kx = k * np.sin(alpha)
     # kz = k * np.cos(alpha)
     
@@ -62,33 +61,35 @@ def gaussian_beam(wl, alpha, amplitude, eps_interp, point, w0, z_beam):
     def electric_field(wl, point):
         x0, _, z0 = point
 
-        # def integrand_re(k_x, sign):
-        #     return (kz*(1-sign) + k_x*sign ) / k * np.exp(-k_x**2 * w0**2 / 4) * (cos(kz*f)*(  cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                     sin(kz*f)*(  sin(kz*z0)*cos(k_x*x0) - cos(kz*z0)*sin(k_x*x0)  )  + \
-        #                                                     (-1)**(sign)*rp * (cos(kz*f)*(  -cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                           sin(kz*f)*(  sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  )))
+        f = z_beam
+        # def integrand_re(kx, sign):
+        #     # kz = np.sqrt(k**2 - k_x**2)
+        #     kz = np.sqrt(k**2 - kx**2)
+        #     return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
+        #         np.real( np.exp(1j*(kz*z_beam + kx*x0)) * (np.exp(-1j*kz*z0) - (-1)**sign*rp * np.exp(1j*kz*z0)) )
         
-        # def integrand_im(k_x, sign):
-        #     return (kz*(1-sign) + k_x*sign ) / k * np.exp(-k_x**2 * w0**2 / 4) * ( -cos(kz*f)*(  sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                        sin(kz*f) * (  cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                        (-1)**(sign)*rp * (cos(kz*f) * (  -sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                              sin(kz*f) * (  -sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  )))
+        # def integrand_im(kx, sign):
+        #     # kz = np.sqrt(k**2 - k_x**2)
+        #     kz = np.sqrt(k**2 - kx**2)
+        #     return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
+        #         np.imag( np.exp(1j*(kz*z_beam + kx*x0)) * (np.exp(-1j*kz*z0) - (-1)**sign*rp * np.exp(1j*kz*z0)) )
 
-        def integrand_re(kx, sign):
-            # kz = np.sqrt(k**2 - k_x**2)
-            kz = np.sqrt(k**2 - kx**2)
-            return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
-                np.real( np.exp(1j*(kz*z_beam + kx*x0)) * (np.exp(-1j*kz*z0) - (-1)**sign*rp * np.exp(1j*kz*z0)) )
+        # Ex = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(0))[0] + 1j * quad(integrand_im, -k, k, args=(0))[0])
+        # Ez = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(1))[0] + 1j * quad(integrand_im, -k, k, args=(1))[0])
         
-        def integrand_im(kx, sign):
-            # kz = np.sqrt(k**2 - k_x**2)
-            kz = np.sqrt(k**2 - kx**2)
-            return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
-                np.imag( np.exp(1j*(kz*z_beam + kx*x0)) * (np.exp(-1j*kz*z0) - (-1)**sign*rp * np.exp(1j*kz*z0)) )
+        c_i = w0**2 - 2*1j*(z0 - f) / k
+        c_r = w0**2 + 2*1j*(z0 + f) / k
+        sqrtci = np.sqrt(c_i)
+        sqrtcr = np.sqrt(c_r)
 
-        Ex = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(0))[0] + 1j * quad(integrand_im, -k, k, args=(0))[0])
-        Ez = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(1))[0] + 1j * quad(integrand_im, -k, k, args=(1))[0])
-        
+        Exi = amplitude * w0 /(k**2 * sqrtci) * (k**2 + 2* x0**2 / c_i**2 - 1/c_i) * np.exp(-1j * k * (z0 - f) - x0**2 /c_i)
+        Exr = amplitude * w0 / (k**2 * sqrtcr) * (k**2 + 2* x0**2 / c_r**2 - 1/c_r) * np.exp(1j * k * (z0 + f) - x0**2 /c_r) 
+        Ex =  Exi - rp*Exr
+
+        Ezi = amplitude * 2*x0*1j * w0 /k * 1/(c_i**1.5) * np.exp(-1j*k*(z0-f) - x0**2 / c_i)
+        Ezr = amplitude * 2*x0*1j * w0 /k * 1/(c_r**1.5) * np.exp( 1j*k*(z0+f) - x0**2 / c_r)
+        Ez = Ezi + rp*Ezr 
+
         E0 = np.array([Ex, 0, Ez], dtype=complex)
         
         return E0
@@ -140,4 +141,4 @@ def gaussian_beam(wl, alpha, amplitude, eps_interp, point, w0, z_beam):
     E = electric_field(wl, point)
     H = magnetic_field(electric_field, wl, point)
     
-    return np.array([[E[0]], [E[1]],[E[2]]], dtype=complex), np.array([[H[0]], [H[1]], [H[2]]], dtype=complex)
+    return np.array([E[0], E[1],E[2]], dtype=complex), np.array([H[0], H[1], H[2]], dtype=complex)

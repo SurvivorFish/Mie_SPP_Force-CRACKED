@@ -242,7 +242,7 @@ class SimulationConfig:
         return (2 * np.pi * self.c_const / self.wl)
 
     def point0(self):
-        return [self.xp.to('nm').magnitude, 0, 0]
+        return [self.xp.to('nm').magnitude, 0, (self.dist + self.R).to('nm').magnitude]
 
     def get_eps_particle(self):
         return frenel.get_interpolate(self.particle)(self.wl)

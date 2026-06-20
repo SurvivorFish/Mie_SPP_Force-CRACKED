@@ -160,40 +160,39 @@ def field_two_beam_setup(wl, alpha, amplitude, eps_interp, point, phase, a_angle
 
 def custom_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle, w0, z_beam):
     k = 2*np.pi/wl
-    omega = 2*np.pi*c_const/wl
     rp, rs = frenel.reflection_coeff_v2(wl, eps_interp, alpha)
-
-    zR = np.pi*w0**2 / wl
 
     def electrc_field(wl, alpha, amplitude, eps_interp, point, phase, a_angle):
         x0, _, z0 = point
 
         f = z_beam
-        # def integrand_re(k_x, sign):
-        #     return (kz*(1-sign) + k_x*sign ) / k * np.exp(-k_x**2 * w0**2 / 4) * (cos(kz*f)*(  cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                     sin(kz*f)*(  sin(kz*z0)*cos(k_x*x0) - cos(kz*z0)*sin(k_x*x0)  )  + \
-        #                                                     (-1)**(sign)*rp * (cos(kz*f)*(  -cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                           sin(kz*f)*(  sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  )))
-        
-        # def integrand_im(k_x, sign):
-        #     return (kz*(1-sign) + k_x*sign ) / k * np.exp(-k_x**2 * w0**2 / 4) * ( -cos(kz*f)*(  sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                        sin(kz*f) * (  cos(kz*z0)*cos(k_x*x0) + sin(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                        (-1)**(sign)*rp * (cos(kz*f) * (  -sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  ) + \
-        #                                                              sin(kz*f) * (  -sin(kz*z0)*cos(k_x*x0) + cos(kz*z0)*sin(k_x*x0)  )))
 
-        def integrand_re(kx, sign):
-            kz = np.sqrt(k**2 - kx**2)
-            return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
-                np.real( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
+        # def integrand_re(kx, sign):
+        #     kz = np.sqrt(k**2 - kx**2)
+        #     return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
+        #         np.real( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
         
-        def integrand_im(kx, sign):
-            kz = np.sqrt(k**2 - kx**2)
-            return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
-                np.imag( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
+        # def integrand_im(kx, sign):
+        #     kz = np.sqrt(k**2 - kx**2)
+        #     return (kz*(1-sign) + kx*sign ) / k * np.exp(-kx**2 * w0**2 / 4) * \
+        #         np.imag( np.exp(1j*(kz*f + kx*x0)) * (np.exp(-1j*kz*z0) - rp*(-1)**sign * np.exp(1j*kz*z0)) )
 
-        Ex = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(0))[0] + 1j * quad(integrand_im, -k, k, args=(0))[0])
-        Ez = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(1))[0] + 1j * quad(integrand_im, -k, k, args=(1))[0])
+        # Ex = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(0))[0] + 1j * quad(integrand_im, -k, k, args=(0))[0])
+        # Ez = amplitude * w0 / (2 * sqrtpi) * (quad(integrand_re, -k, k, args=(1))[0] + 1j * quad(integrand_im, -k, k, args=(1))[0])
         
+        c_i = w0**2 - 2*1j*(z0 - f) / k
+        c_r = w0**2 + 2*1j*(z0 + f) / k
+        sqrtci = np.sqrt(c_i)
+        sqrtcr = np.sqrt(c_r)
+
+        Exi = amplitude * w0 /(k**2 * sqrtci) * (k**2 + 2* x0**2 / c_i**2 - 1/c_i) * np.exp(-1j * k * (z0 - f) - x0**2 /c_i)
+        Exr = amplitude * w0 / (k**2 * sqrtcr) * (k**2 + 2* x0**2 / c_r**2 - 1/c_r) * np.exp(1j * k * (z0 + f) - x0**2 /c_r) 
+        Ex =  Exi - rp*Exr
+
+        Ezi = amplitude * 2*x0*1j * w0 /k * 1/(c_i**1.5) * np.exp(-1j*k*(z0-f) - x0**2 / c_i)
+        Ezr = amplitude * 2*x0*1j * w0 /k * 1/(c_r**1.5) * np.exp( 1j*k*(z0+f) - x0**2 / c_r)
+        Ez = Ezi + rp*Ezr 
+
         E0 = np.array([Ex, 0, Ez], dtype=complex)
         
         return E0
